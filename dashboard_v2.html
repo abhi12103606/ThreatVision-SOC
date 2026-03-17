@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOC Level-2 Analyst Platform</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#090c0e;--bg1:#0f1315;--bg2:#161a1d;--bg3:#1d2226;--bg4:#242a2f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --t1:#dde2e6;--t2:#7d8890;--t3:#464f57;
+  --red:#e05555;--amber:#d48c10;--green:#3da060;
+  --blue:#3d8fe0;--teal:#28b4a0;--purple:#9b6ddf;--pink:#d45b8a;
+  --mono:'Courier New',monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:8px;
+}
+body{font-family:var(--sans);background:var(--bg0);color:var(--t1);font-size:13px;min-height:100vh}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:0.5px solid var(--border);background:var(--bg1);position:sticky;top:0;z-index:100}
+.hdr-title{font-size:14px;font-weight:500;letter-spacing:.03em}
+.hdr-sub{font-size:11px;color:var(--t2);margin-top:2px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot.green{background:var(--green);animation:blink 2s infinite}
+.dot.red{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* TABS */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);background:var(--bg1);padding:0 20px;overflow-x:auto;gap:0}
+.tab{padding:8px 14px;cursor:pointer;font-size:11px;font-weight:500;color:var(--t2);border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;user-select:none}
+.tab.active{color:var(--t1);border-bottom-color:var(--blue)}
+.tab:hover{color:var(--t1)}
+
+/* PANELS */
+.panel{display:none;padding:16px 20px}
+.panel.active{display:block}
+
+/* OFFLINE */
+#offline-banner{display:none;background:rgba(224,85,85,.1);border-bottom:0.5px solid var(--red);color:var(--red);font-size:12px;padding:8px 20px;text-align:center}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
+.mc{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:12px}
+.mc .v{font-size:20px;font-weight:500;line-height:1}
+.mc .l{font-size:10px;color:var(--t2);margin-top:4px}
+.mc.red .v{color:var(--red)}.mc.amber .v{color:var(--amber)}
+.mc.green .v{color:var(--green)}.mc.blue .v{color:var(--blue)}
+.mc.teal .v{color:var(--teal)}.mc.purple .v{color:var(--purple)}
+.mc.pink .v{color:var(--pink)}
+
+/* SECTION */
+.sec{font-size:10px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.09em;margin:16px 0 8px}
+
+/* BADGES */
+.badge{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500;display:inline-block;white-space:nowrap}
+.badge.crit{background:#3a1212;color:#f08080}
+.badge.high{background:#2e1c07;color:#eda850}
+.badge.med{background:#0d2040;color:#6aaeed}
+.badge.low{background:#0c2415;color:#5dc87a}
+.badge.ok{background:#0c2415;color:#5dc87a}
+.badge.info{background:#0d1f30;color:#5aaedd}
+.badge.purple{background:#1e143a;color:#b48af0}
+.badge.pink{background:#2a0f1e;color:#e88ab0}
+.badge.gray{background:#1e2226;color:#8a9199}
+.badge.teal{background:#0a2020;color:#40c8b0}
+
+/* TABLES */
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;color:var(--t3);text-align:left;padding:5px 10px;border-bottom:0.5px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:6px 10px;border-bottom:0.5px solid var(--border);vertical-align:top}
+.tbl tr:hover td{background:var(--bg2)}
+.tbl tr.mal td{background:rgba(224,85,85,.06)}
+.tbl tr.mal td:first-child{border-left:2px solid var(--red)}
+.tbl tr.sus td{background:rgba(212,140,16,.04)}
+.tbl tr.sus td:first-child{border-left:2px solid var(--amber)}
+.tbl tr.cve-crit td:first-child{border-left:2px solid var(--red)}
+
+/* CONTROLS */
+.ctrl{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.ctrl input,.ctrl select{font-size:12px;padding:5px 10px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--t1);outline:none}
+.ctrl textarea{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--t1);outline:none;resize:vertical;min-height:60px;font-family:var(--sans)}
+.btn{padding:5px 13px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--t1);cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3)}.btn:active{transform:scale(0.97)}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.primary:hover{opacity:.85}
+.btn.danger{border-color:var(--red);color:var(--red)}.btn.danger:hover{background:rgba(224,85,85,.1)}
+.btn.success{border-color:var(--green);color:var(--green)}.btn.success:hover{background:rgba(61,160,96,.1)}
+.btn.amber{border-color:var(--amber);color:var(--amber)}
+.btn.purple{border-color:var(--purple);color:var(--purple)}
+
+/* CHARTS */
+.chart-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-bottom:16px}
+.chart-card{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:12px}
+.chart-card .ct{font-size:11px;color:var(--t2);margin-bottom:8px}
+
+/* INCIDENT CARD */
+.inc-card{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:14px;margin-bottom:10px;position:relative}
+.inc-card.critical{border-left:3px solid var(--red)}
+.inc-card.high{border-left:3px solid var(--amber)}
+.inc-card.medium{border-left:3px solid var(--blue)}
+.inc-card.low{border-left:3px solid var(--green)}
+.inc-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.inc-title{font-size:13px;font-weight:500}
+.inc-meta{font-size:11px;color:var(--t2);margin-bottom:8px;line-height:1.5}
+.inc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+
+/* TIMELINE */
+.timeline-item{display:flex;gap:12px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.tl-time{font-family:var(--mono);font-size:10px;color:var(--t3);min-width:72px;padding-top:2px}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);margin-top:4px;flex-shrink:0}
+.tl-text{font-size:12px;color:var(--t1);flex:1}
+
+/* HUNT */
+.hunt-result{border-bottom:0.5px solid var(--border);padding:8px 0}
+.hunt-match{font-size:11px;color:var(--teal);font-family:var(--mono)}
+.hunt-detail{font-size:11px;color:var(--t2);margin-top:3px}
+
+/* CVE */
+.cve-item{background:var(--bg3);border-radius:6px;padding:10px;margin-bottom:6px;border-left:3px solid var(--red)}
+.cve-item.high{border-left-color:var(--amber)}
+.cve-item.med{border-left-color:var(--blue)}
+.cve-id{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--red)}
+.cve-score{font-size:18px;font-weight:500}
+.cve-desc{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.5}
+
+/* CORRELATION */
+.corr-card{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:13px;margin-bottom:8px}
+.corr-card.critical{border-left:3px solid var(--red)}
+.corr-card.high{border-left:3px solid var(--amber)}
+.risk-bar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-top:5px}
+.risk-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* REPORT */
+.report-form{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:16px;margin-bottom:16px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+.empty{text-align:center;padding:28px;color:var(--t3);font-size:12px}
+
+/* STAGE PIPELINE */
+.stage-pipe{display:flex;align-items:center;gap:0;margin:8px 0}
+.stage-step{padding:4px 12px;font-size:10px;font-weight:500;background:var(--bg3);color:var(--t2);border:0.5px solid var(--border)}
+.stage-step:first-child{border-radius:4px 0 0 4px}
+.stage-step:last-child{border-radius:0 4px 4px 0}
+.stage-step.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.stage-step.done{background:var(--green);color:#fff;border-color:var(--green)}
+.stage-arrow{color:var(--t3);font-size:10px;padding:0 2px}
+</style>
+</head>
+<body>
+
+<div id="offline-banner">⚠ monitor_v2.py is not running — run: <code>python monitor_v2.py</code></div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="hdr-title"><span class="dot green" id="status-dot"></span>SOC Level-2 Analyst Platform</div>
+    <div class="hdr-sub" id="hdr-sub">Connecting to monitor_v2.py…</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--t2)" id="live-clock"></span>
+    <span class="badge info" id="conn-badge">–</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="tab('overview')">Overview</div>
+  <div class="tab" onclick="tab('incidents')">Incidents <span id="inc-badge" style="background:#3a1212;color:#f08080;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></div>
+  <div class="tab" onclick="tab('hunt')">Threat Hunt</div>
+  <div class="tab" onclick="tab('cve')">CVE Scanner</div>
+  <div class="tab" onclick="tab('correlation')">Correlation</div>
+  <div class="tab" onclick="tab('report')">Report</div>
+  <div class="tab" onclick="tab('connections')">Connections</div>
+  <div class="tab" onclick="tab('processes')">Processes</div>
+  <div class="tab" onclick="tab('ports')">Open Ports</div>
+  <div class="tab" onclick="tab('threats')">Threat Log <span id="thr-badge" style="background:#3a1212;color:#f08080;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px">0</span></div>
+  <div class="tab" onclick="tab('hardware')">Hardware</div>
+  <div class="tab" onclick="tab('wifi')">WiFi</div>
+  <div class="tab" onclick="tab('sysinfo')">System</div>
+</div>
+
+<!-- ════ OVERVIEW ════ -->
+<div class="panel active" id="panel-overview">
+  <div class="metrics">
+    <div class="mc red"><div class="v" id="m-inc">0</div><div class="l">Active Incidents</div></div>
+    <div class="mc red"><div class="v" id="m-thr">0</div><div class="l">Total Threats</div></div>
+    <div class="mc pink"><div class="v" id="m-cve">0</div><div class="l">CVE Findings</div></div>
+    <div class="mc purple"><div class="v" id="m-corr">0</div><div class="l">Correlated IPs</div></div>
+    <div class="mc amber"><div class="v" id="m-cpu">–</div><div class="l">CPU %</div></div>
+    <div class="mc amber"><div class="v" id="m-mem">–</div><div class="l">Memory %</div></div>
+    <div class="mc teal"><div class="v" id="m-recv">–</div><div class="l">Download KB/s</div></div>
+    <div class="mc blue"><div class="v" id="m-conns">–</div><div class="l">Connections</div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-card"><div class="ct">CPU %</div><div style="position:relative;height:100px"><canvas id="ch-cpu"></canvas></div></div>
+    <div class="chart-card"><div class="ct">Memory %</div><div style="position:relative;height:100px"><canvas id="ch-mem"></canvas></div></div>
+    <div class="chart-card"><div class="ct">Network KB/s</div><div style="position:relative;height:100px"><canvas id="ch-net"></canvas></div></div>
+  </div>
+  <div class="sec">Active Incidents</div>
+  <div id="ov-incidents"></div>
+  <div class="sec">Recent Critical Threats</div>
+  <div id="ov-threats"></div>
+</div>
+
+<!-- ════ INCIDENTS ════ -->
+<div class="panel" id="panel-incidents">
+  <div class="ctrl">
+    <select id="inc-filter" onchange="renderIncidents()">
+      <option value="all">All incidents</option>
+      <option value="Detected">Detected</option>
+      <option value="Investigating">Investigating</option>
+      <option value="Contained">Contained</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+    <select id="inc-sev" onchange="renderIncidents()">
+      <option value="all">All severities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+    </select>
+  </div>
+  <div id="incidents-list"><div class="empty">No incidents yet.</div></div>
+</div>
+
+<!-- ════ THREAT HUNT ════ -->
+<div class="panel" id="panel-hunt">
+  <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:16px;margin-bottom:16px">
+    <div style="font-size:12px;color:var(--t2);margin-bottom:10px">
+      Search across all live connections, processes, open ports and saved threat log simultaneously.
+      Try an IP address, domain name, process name, or port number.
+    </div>
+    <div class="ctrl">
+      <input type="text" id="hunt-query" placeholder="Search: IP, domain, process, port, keyword…" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')doHunt()">
+      <select id="hunt-type">
+        <option value="keyword">Keyword</option>
+        <option value="ip">IP Address</option>
+        <option value="domain">Domain</option>
+        <option value="process">Process Name</option>
+        <option value="port">Port Number</option>
+      </select>
+      <button class="btn primary" onclick="doHunt()">🔍 Hunt</button>
+    </div>
+    <!-- Quick hunt buttons -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      <span style="font-size:11px;color:var(--t2);margin-right:4px">Quick hunts:</span>
+      <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('4444')">Port 4444</button>
+      <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('tor')">TOR traffic</button>
+      <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('cmd.exe')">cmd.exe</button>
+      <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('powershell')">PowerShell</button>
+      <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('mimikatz')">Mimikatz</button>
+    </div>
+  </div>
+  <div id="hunt-loading" style="display:none;text-align:center;padding:20px;color:var(--t2);font-size:12px">🔍 Hunting across all data sources…</div>
+  <div id="hunt-results"><div class="empty">Run a hunt query above to search all data sources.</div></div>
+</div>
+
+<!-- ════ CVE SCANNER ════ -->
+<div class="panel" id="panel-cve">
+  <div class="ctrl">
+    <button class="btn primary" onclick="runCVEScan()">⚡ Scan All Open Ports</button>
+    <span style="font-size:11px;color:var(--t2)" id="cve-status">Cross-references open ports against known CVE database.</span>
+  </div>
+  <div id="cve-results"><div class="empty">Click "Scan All Open Ports" to check for vulnerabilities.</div></div>
+</div>
+
+<!-- ════ CORRELATION ════ -->
+<div class="panel" id="panel-correlation">
+  <div style="font-size:12px;color:var(--t2);margin-bottom:12px;padding:10px 14px;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border)">
+    Each external IP is correlated across all data sources — connections, threat log, hardware access, open ports.
+    Correlation score = weighted sum of all evidence. Higher score = more dangerous.
+  </div>
+  <div id="corr-list"><div class="empty">Correlation builds automatically — wait a few seconds after starting.</div></div>
+</div>
+
+<!-- ════ REPORT GENERATOR ════ -->
+<div class="panel" id="panel-report">
+  <div class="report-form">
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--t1)">📄 Generate Incident Report (PDF)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">
+      Select an incident to generate a professional PDF report including timeline, evidence, MITRE ATT&CK mapping, analyst notes and recommendations.
+      <span id="reportlab-status"></span>
+    </div>
+    <div class="ctrl">
+      <select id="report-incident" style="flex:1">
+        <option value="">— Select an incident —</option>
+      </select>
+      <button class="btn primary" onclick="generateReport()">⬇ Download PDF Report</button>
+    </div>
+  </div>
+  <div class="sec">All Incidents Available for Reporting</div>
+  <div class="tw">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Severity</th><th>Title</th><th>Stage</th><th>Created</th><th>Evidence</th><th>Action</th></tr></thead>
+      <tbody id="report-inc-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ CONNECTIONS ════ -->
+<div class="panel" id="panel-connections">
+  <div class="ctrl">
+    <input type="text" id="conn-search" placeholder="Filter IP / domain / process…" style="flex:1;min-width:150px" oninput="renderConnections()">
+    <select id="conn-filter" onchange="renderConnections()">
+      <option value="all">All</option>
+      <option value="malicious">Malicious</option>
+      <option value="suspicious">Suspicious</option>
+      <option value="external">External</option>
+      <option value="established">ESTABLISHED</option>
+    </select>
+  </div>
+  <div class="tw">
+    <table class="tbl">
+      <thead><tr><th>Process</th><th>PID</th><th>Proto</th><th>Local</th><th>Remote IP</th><th>Domain</th><th>Country</th><th>Score</th><th>Status</th><th>Flags</th></tr></thead>
+      <tbody id="conn-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ PROCESSES ════ -->
+<div class="panel" id="panel-processes">
+  <div class="ctrl">
+    <input type="text" id="proc-search" placeholder="Filter by name…" style="flex:1" oninput="renderProcesses()">
+    <select id="proc-sort" onchange="renderProcesses()">
+      <option value="cpu">Sort: CPU</option>
+      <option value="mem">Sort: Memory</option>
+      <option value="name">Sort: Name</option>
+      <option value="conns">Sort: Connections</option>
+    </select>
+  </div>
+  <div class="tw">
+    <table class="tbl">
+      <thead><tr><th>Process</th><th>PID</th><th>User</th><th>CPU%</th><th>Mem%</th><th>Conns</th><th>Status</th></tr></thead>
+      <tbody id="proc-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ OPEN PORTS ════ -->
+<div class="panel" id="panel-ports">
+  <div class="tw">
+    <table class="tbl">
+      <thead><tr><th>Port</th><th>Protocol</th><th>Address</th><th>Process</th><th>PID</th><th>CVEs Found</th><th>Risk Note</th></tr></thead>
+      <tbody id="ports-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ THREAT LOG ════ -->
+<div class="panel" id="panel-threats">
+  <div class="ctrl">
+    <select id="tl-sev" onchange="renderThreats()">
+      <option value="all">All severities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+    </select>
+    <select id="tl-cat" onchange="renderThreats()">
+      <option value="all">All categories</option>
+      <option value="Threat Intel">Threat Intel</option>
+      <option value="CVE Vulnerability">CVE Vulnerability</option>
+      <option value="Hardware Surveillance">Hardware Surveillance</option>
+      <option value="Open Port">Open Port</option>
+      <option value="Process">Process</option>
+    </select>
+    <input type="text" id="tl-search" placeholder="Search…" style="flex:1" oninput="renderThreats()">
+    <button class="btn" style="border-color:var(--green);color:var(--green)" onclick="window.open('http://localhost:5000/api/threats/export')">Export JSON</button>
+    <button class="btn danger" onclick="clearThreats()">Clear</button>
+  </div>
+  <div id="threat-list"></div>
+</div>
+
+<!-- ════ HARDWARE ════ -->
+<div class="panel" id="panel-hardware">
+  <div id="hw-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px"></div>
+  <div class="sec">Hardware Threat Log</div>
+  <div id="hw-threats"></div>
+</div>
+
+<!-- ════ WiFi ════ -->
+<div class="panel" id="panel-wifi">
+  <div class="tw">
+    <table class="tbl">
+      <thead><tr><th>IP</th><th>MAC</th><th>Type</th><th>Hostname</th><th>Status</th></tr></thead>
+      <tbody id="wifi-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ SYSTEM ════ -->
+<div class="panel" id="panel-sysinfo">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px" id="sysinfo-grid"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+'use strict';
+const API='http://localhost:5000';
+const REFRESH=4000;
+let D=null,charts={},connected=false;
+const TABS=['overview','incidents','hunt','cve','correlation','report',
+            'connections','processes','ports','threats','hardware','wifi','sysinfo'];
+
+// CLOCK
+setInterval(()=>{const e=document.getElementById('live-clock');if(e)e.textContent=new Date().toISOString().replace('T',' ').slice(0,19)+' UTC';},1000);
+
+// TABS
+function tab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',TABS[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===`panel-${name}`));
+  if(D)renderTab(name);
+}
+function activeTab(){const t=document.querySelector('.tab.active');return TABS[[...document.querySelectorAll('.tab')].indexOf(t)]||'overview';}
+function renderTab(n){
+  if(n==='overview')     renderOverview();
+  else if(n==='incidents')   renderIncidents();
+  else if(n==='cve')         renderCVE();
+  else if(n==='correlation') renderCorrelation();
+  else if(n==='report')      renderReport();
+  else if(n==='connections') renderConnections();
+  else if(n==='processes')   renderProcesses();
+  else if(n==='ports')       renderPorts();
+  else if(n==='threats')     renderThreats();
+  else if(n==='hardware')    renderHardware();
+  else if(n==='wifi')        renderWifi();
+  else if(n==='sysinfo')     renderSysinfo();
+}
+
+// FETCH
+async function fetchAll(){
+  try{
+    const res=await fetch(`${API}/api/all`,{signal:AbortSignal.timeout(5000)});
+    if(!res.ok)throw new Error();
+    D=await res.json();
+    if(!connected){connected=true;document.getElementById('offline-banner').style.display='none';document.getElementById('status-dot').className='dot green';}
+    const si=D.system_info||{};
+    document.getElementById('hdr-sub').textContent=`${si.hostname||'?'} · ${si.local_ip||'?'} · ${si.os||'?'}`;
+    document.getElementById('conn-badge').textContent='LIVE';
+    document.getElementById('conn-badge').className='badge ok';
+    document.getElementById('inc-badge').textContent=D.total_incidents||0;
+    document.getElementById('thr-badge').textContent=D.total_alerts||0;
+    renderTab(activeTab());
+  }catch(e){
+    connected=false;
+    document.getElementById('offline-banner').style.display='block';
+    document.getElementById('status-dot').className='dot red';
+    document.getElementById('conn-badge').textContent='OFFLINE';
+    document.getElementById('conn-badge').className='badge crit';
+  }
+}
+
+// HELPERS
+function sev_badge(s){const m={critical:'crit',high:'high',medium:'med',low:'low'};return `<span class="badge ${m[s]||'gray'}">${s||'?'}</span>`;}
+function sc(n){return n>80?'var(--red)':n>50?'var(--amber)':'var(--t2)';}
+function fmt_bytes(b){if(b>1e9)return(b/1e9).toFixed(2)+' GB';if(b>1e6)return(b/1e6).toFixed(1)+' MB';if(b>1e3)return(b/1e3).toFixed(0)+' KB';return(b||0)+' B';}
+function stage_pipe(current){
+  const stages=['Detected','Investigating','Contained','Resolved'];
+  const ci=stages.indexOf(current);
+  return `<div class="stage-pipe">${stages.map((s,i)=>`<span class="stage-step ${i<ci?'done':i===ci?'active':''}">${s}</span>${i<stages.length-1?'<span class="stage-arrow">›</span>':''}`).join('')}</div>`;
+}
+function updateChart(id,labels,d1,col1,d2,col2){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  const datasets=[{label:id,data:d1,borderColor:col1,backgroundColor:col1+'22',borderWidth:1.5,fill:true,tension:0.3,pointRadius:0}];
+  if(d2)datasets.push({label:'up',data:d2,borderColor:col2,backgroundColor:col2+'22',borderWidth:1.5,fill:true,tension:0.3,pointRadius:0});
+  const opts={responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:!!d2}},
+    scales:{x:{ticks:{display:false},grid:{color:'rgba(255,255,255,.03)'}},
+            y:{min:0,ticks:{color:'#464f57',font:{size:10}},grid:{color:'rgba(255,255,255,.03)'}}}};
+  if(charts[id]){charts[id].data.labels=labels;charts[id].data.datasets[0].data=d1;if(d2)charts[id].data.datasets[1].data=d2;charts[id].update('none');}
+  else{charts[id]=new Chart(canvas,{type:'line',data:{labels,datasets},options:opts});}
+}
+
+// OVERVIEW
+function renderOverview(){
+  const cpu=D.cpu_history||[],mem=D.mem_history||[],ts=D.timestamps||[],ns=D.network_stats||{};
+  document.getElementById('m-inc').textContent=D.total_incidents||0;
+  document.getElementById('m-thr').textContent=D.total_alerts||0;
+  document.getElementById('m-cve').textContent=Object.keys(D.cve_results||{}).length;
+  document.getElementById('m-corr').textContent=Object.keys(D.correlation||{}).length;
+  document.getElementById('m-cpu').textContent=(cpu[cpu.length-1]||0).toFixed(1)+'%';
+  document.getElementById('m-mem').textContent=(mem[mem.length-1]||0).toFixed(1)+'%';
+  document.getElementById('m-recv').textContent=(ns.recv_kbps||0).toFixed(1);
+  document.getElementById('m-conns').textContent=(D.connections||[]).length;
+  updateChart('ch-cpu',ts,cpu,'#3d8fe0');
+  updateChart('ch-mem',ts,mem,'#d48c10');
+  updateChart('ch-net',ts,D.net_recv_history||[],'#28b4a0',D.net_sent_history||[],'#3da060');
+
+  // Active incidents summary
+  const active=(D.incidents||[]).filter(i=>i.status!=='Resolved').slice(0,3);
+  document.getElementById('ov-incidents').innerHTML=active.length
+    ?active.map(inc=>`
+      <div class="inc-card ${inc.severity}" style="margin-bottom:8px">
+        <div class="inc-header">${sev_badge(inc.severity)}<span class="badge teal">${inc.stage}</span><span class="inc-title">${inc.id} — ${inc.title}</span></div>
+        <div class="inc-meta">IP: ${inc.primary_ip||'N/A'} · ${inc.category} · MITRE: ${inc.mitre||'N/A'} · Created: ${inc.created}</div>
+        ${stage_pipe(inc.stage)}
+      </div>`).join('')
+    :'<div class="empty">No active incidents.</div>';
+
+  // Recent threats
+  const recent=(D.threat_log||[]).filter(t=>t.severity==='critical'||t.severity==='high').slice(0,4);
+  document.getElementById('ov-threats').innerHTML=recent.length
+    ?recent.map(t=>`
+      <div style="border-bottom:0.5px solid var(--border);padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--t3);min-width:58px;padding-top:2px">${t.time}</span>
+        <div>${sev_badge(t.severity)} <span class="badge gray">${t.category}</span>
+          <div style="font-size:12px;font-weight:500;margin-top:4px">${t.title}</div>
+          <div style="font-size:11px;color:var(--t2)">${t.detail}</div>
+        </div>
+      </div>`).join('')
+    :'<div class="empty">No critical threats yet.</div>';
+}
+
+// INCIDENTS
+function renderIncidents(){
+  const fil=document.getElementById('inc-filter').value;
+  const sev=document.getElementById('inc-sev').value;
+  let incs=(D.incidents||[]).filter(i=>{
+    if(fil!=='all'&&i.stage!==fil)return false;
+    if(sev!=='all'&&i.severity!==sev)return false;
+    return true;
+  });
+  document.getElementById('incidents-list').innerHTML=incs.length
+    ?incs.map(inc=>`
+      <div class="inc-card ${inc.severity}" id="inc-${inc.id}">
+        <div class="inc-header">
+          ${sev_badge(inc.severity)}
+          <span class="badge teal">${inc.stage}</span>
+          <span class="badge gray">${inc.category}</span>
+          <span class="inc-title">${inc.id} — ${inc.title}</span>
+        </div>
+        <div class="inc-meta">
+          IP: <span style="color:var(--red);font-family:var(--mono)">${inc.primary_ip||'N/A'}</span>
+          ${inc.domain?` · Domain: <span style="color:var(--teal)">${inc.domain}</span>`:''}
+          · MITRE: <span style="color:var(--purple)">${inc.mitre||'N/A'}</span>
+          · Created: ${inc.created} · Evidence: ${(inc.evidence||[]).length} items
+        </div>
+        ${stage_pipe(inc.stage)}
+
+        <!-- Timeline -->
+        <details style="margin-top:10px">
+          <summary style="font-size:11px;color:var(--t2);cursor:pointer;user-select:none">▶ Timeline (${(inc.timeline||[]).length} events)</summary>
+          <div style="margin-top:8px;padding-left:8px">
+            ${(inc.timeline||[]).map(tl=>`
+              <div class="timeline-item">
+                <span class="tl-time">${tl.time}</span>
+                <div class="tl-dot"></div>
+                <span class="tl-text">${tl.event}</span>
+              </div>`).join('')}
+          </div>
+        </details>
+
+        <!-- Analyst Notes -->
+        <details style="margin-top:8px">
+          <summary style="font-size:11px;color:var(--t2);cursor:pointer;user-select:none">▶ Analyst Notes (${(inc.analyst_notes||[]).length})</summary>
+          <div style="margin-top:8px">
+            ${(inc.analyst_notes||[]).map(n=>`<div style="font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--border);color:var(--t2)">[${n.time}] <strong style="color:var(--t1)">${n.analyst}</strong>: ${n.text}</div>`).join('')}
+            <textarea id="note-${inc.id}" placeholder="Add analyst note…" style="width:100%;margin-top:8px;font-size:12px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--t1);border-radius:6px;padding:6px 10px;resize:vertical;min-height:50px"></textarea>
+            <button class="btn success" style="margin-top:4px;font-size:11px" onclick="addNote('${inc.id}')">Add Note</button>
+          </div>
+        </details>
+
+        <!-- Actions -->
+        <div class="inc-actions">
+          <button class="btn" style="font-size:11px" onclick="incAction('${inc.id}','Investigate','Analyst began investigation')">🔍 Investigate</button>
+          <button class="btn amber" style="font-size:11px" onclick="incAction('${inc.id}','Contain','IP/process containment applied')">🛡 Contain</button>
+          <button class="btn success" style="font-size:11px" onclick="incAction('${inc.id}','Resolve','Incident resolved and closed')">✓ Resolve</button>
+          <button class="btn purple" style="font-size:11px" onclick="escalate('${inc.id}')">⬆ Escalate</button>
+          <button class="btn primary" style="font-size:11px" onclick="downloadReport('${inc.id}')">📄 PDF Report</button>
+        </div>
+      </div>`).join('')
+    :'<div class="empty">No incidents match filter.</div>';
+}
+
+async function addNote(id){
+  const txt=document.getElementById(`note-${id}`).value.trim();
+  if(!txt)return;
+  await fetch(`${API}/api/incidents/${id}/note`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})});
+  document.getElementById(`note-${id}`).value='';
+  await fetchAll();
+}
+async function incAction(id,action,detail){
+  await fetch(`${API}/api/incidents/${id}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,detail})});
+  await fetchAll();
+}
+async function escalate(id){
+  await fetch(`${API}/api/incidents/${id}/escalate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+  await fetchAll();
+}
+function downloadReport(id){window.open(`${API}/api/report/${id}`);}
+
+// THREAT HUNT
+async function doHunt(){
+  const q=document.getElementById('hunt-query').value.trim();
+  if(!q)return;
+  document.getElementById('hunt-loading').style.display='block';
+  document.getElementById('hunt-results').innerHTML='';
+  try{
+    const res=await fetch(`${API}/api/hunt`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,type:document.getElementById('hunt-type').value})});
+    const data=await res.json();
+    renderHuntResults(data);
+  }catch(e){document.getElementById('hunt-results').innerHTML='<div class="empty">Hunt failed — is monitor_v2.py running?</div>';}
+  document.getElementById('hunt-loading').style.display='none';
+}
+function quickHunt(q){document.getElementById('hunt-query').value=q;doHunt();}
+function renderHuntResults(data){
+  const results=data.results||[];
+  document.getElementById('hunt-results').innerHTML=`
+    <div style="font-size:12px;color:var(--t2);margin-bottom:10px">
+      Found <strong style="color:var(--t1)">${data.count||0}</strong> results for 
+      "<span style="color:var(--teal)">${data.query}</span>" — ${data.timestamp}
+    </div>
+    ${results.length?results.map(r=>`
+      <div class="hunt-result">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          ${sev_badge(r.severity)}
+          <span class="badge info">${r.source}</span>
+          <span class="hunt-match">${r.match}</span>
+          ${r.ip?`<span style="font-family:var(--mono);font-size:10px;color:var(--red)">${r.ip}</span>`:''}
+        </div>
+        <div class="hunt-detail">${r.detail}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">${r.timestamp}</div>
+      </div>`).join(''):'<div class="empty">No results found for this query.</div>'}`;
+}
+
+// CVE
+async function runCVEScan(){
+  document.getElementById('cve-status').textContent=' Scanning…';
+  document.getElementById('cve-results').innerHTML='<div class="empty">Scanning open ports for CVEs…</div>';
+  try{
+    const res=await fetch(`${API}/api/cve/scan`,{method:'POST'});
+    const data=await res.json();
+    D.cve_results=data;
+    renderCVE();
+    document.getElementById('cve-status').textContent=` Found ${Object.keys(data).length} ports with CVEs.`;
+  }catch(e){document.getElementById('cve-status').textContent=' Scan failed.';}
+}
+function renderCVE(){
+  const cvs=D.cve_results||{};
+  if(!Object.keys(cvs).length){
+    document.getElementById('cve-results').innerHTML='<div class="empty">No CVE data yet. Click "Scan All Open Ports".</div>';
+    return;
+  }
+  const sorted=Object.values(cvs).sort((a,b)=>b.max_score-a.max_score);
+  document.getElementById('cve-results').innerHTML=sorted.map(p=>`
+    <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px;font-weight:500;color:${p.max_score>=9?'var(--red)':p.max_score>=7?'var(--amber)':'var(--blue)'}">${p.max_score.toFixed(1)}</span>
+        <div>
+          <span style="font-weight:500">Port ${p.port}</span>
+          <span style="color:var(--t2);font-size:11px"> — ${p.process}</span>
+        </div>
+        ${p.critical_count>0?`<span class="badge crit">${p.critical_count} CRITICAL CVE${p.critical_count>1?'s':''}</span>`:''}
+      </div>
+      ${p.cves.map(c=>`
+        <div class="cve-item ${c.score>=9?'':c.score>=7?'high':'med'}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="cve-id">${c.id}</span>
+            <span class="cve-score" style="font-size:14px;color:${c.score>=9?'var(--red)':c.score>=7?'var(--amber)':'var(--blue)'}">CVSS ${c.score}</span>
+            <span class="badge ${c.severity==='CRITICAL'?'crit':c.severity==='HIGH'?'high':'med'}">${c.severity}</span>
+            ${c.patched?'<span class="badge ok">Patched</span>':'<span class="badge crit">Unpatched</span>'}
+          </div>
+          <div class="cve-desc">${c.desc}</div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// CORRELATION
+function renderCorrelation(){
+  const corr=D.correlation||{};
+  const items=Object.values(corr);
+  if(!items.length){document.getElementById('corr-list').innerHTML='<div class="empty">Correlation data building — wait a few seconds.</div>';return;}
+  document.getElementById('corr-list').innerHTML=items.map(g=>`
+    <div class="corr-card ${g.risk_level}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-family:var(--mono);font-weight:500;color:${sc(g.correlation_score)}">${g.ip}</span>
+        ${g.domain?`<span style="color:var(--teal);font-size:11px">${g.domain}</span>`:''}
+        ${g.country?`<span class="badge gray">${g.country}</span>`:''}
+        <span style="margin-left:auto;font-size:18px;font-weight:500;color:${sc(g.correlation_score)}">${Math.round(g.correlation_score)}</span>
+        ${sev_badge(g.risk_level)}
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--t2);margin-bottom:8px">
+        <span>🔗 ${(g.connections||[]).length} connections</span>
+        <span>⚠ ${(g.threats||[]).length} threats</span>
+        <span>📊 ${g.total_events} total events</span>
+        ${g.last_seen?`<span>Last: ${g.last_seen}</span>`:''}
+      </div>
+      <div class="risk-bar"><div class="risk-fill" style="width:${Math.min(100,g.correlation_score)}%;background:${sc(g.correlation_score)}"></div></div>
+      ${(g.threats||[]).length?`
+        <details style="margin-top:8px">
+          <summary style="font-size:11px;color:var(--t2);cursor:pointer">▶ Threat history (${g.threats.length})</summary>
+          <div style="margin-top:6px">
+            ${g.threats.slice(0,5).map(t=>`<div style="font-size:11px;padding:3px 0;color:var(--t2)">
+              ${sev_badge(t.severity)} ${t.title} <span style="color:var(--t3)">${t.time}</span>
+            </div>`).join('')}
+          </div>
+        </details>`:''}
+    </div>`).join('');
+}
+
+// REPORT
+function renderReport(){
+  const incs=D.incidents||[];
+  const sel=document.getElementById('report-incident');
+  sel.innerHTML='<option value="">— Select incident —</option>'+
+    incs.map(i=>`<option value="${i.id}">${i.id} — ${i.title} [${i.severity}]</option>`).join('');
+  const rl=D.reportlab;
+  document.getElementById('reportlab-status').innerHTML=rl
+    ?'<span style="color:var(--green);margin-left:6px">✓ ReportLab installed — PDF generation ready</span>'
+    :'<span style="color:var(--amber);margin-left:6px">⚠ Run: pip install reportlab to enable PDF generation</span>';
+  document.getElementById('report-inc-list').innerHTML=incs.length
+    ?incs.map(i=>`
+      <tr>
+        <td style="font-family:var(--mono);color:var(--teal)">${i.id}</td>
+        <td>${sev_badge(i.severity)}</td>
+        <td style="font-weight:500">${i.title}</td>
+        <td><span class="badge info">${i.stage}</span></td>
+        <td style="color:var(--t2);font-size:11px">${i.created}</td>
+        <td style="color:var(--t2)">${(i.evidence||[]).length}</td>
+        <td><button class="btn primary" style="font-size:10px;padding:3px 10px" onclick="downloadReport('${i.id}')">📄 PDF</button></td>
+      </tr>`).join('')
+    :'<tr><td colspan="7" class="empty">No incidents to report.</td></tr>';
+}
+async function generateReport(){
+  const id=document.getElementById('report-incident').value;
+  if(!id)return alert('Please select an incident first.');
+  downloadReport(id);
+}
+
+// CONNECTIONS
+function renderConnections(){
+  const search=(document.getElementById('conn-search').value||'').toLowerCase();
+  const filter=document.getElementById('conn-filter').value;
+  let rows=(D.connections||[]).filter(c=>{
+    if(filter==='malicious'&&!c.malicious)return false;
+    if(filter==='suspicious'&&!c.suspicious)return false;
+    if(filter==='external'&&!c.is_external)return false;
+    if(filter==='established'&&c.status!=='ESTABLISHED')return false;
+    if(search&&!c.process.toLowerCase().includes(search)&&!(c.raddr||'').includes(search)&&!(c.domain||'').toLowerCase().includes(search))return false;
+    return true;
+  });
+  document.getElementById('conn-body').innerHTML=rows.length
+    ?rows.map(c=>`
+      <tr class="${c.malicious?'mal':c.suspicious?'sus':''}">
+        <td style="font-weight:500">${c.process}</td>
+        <td style="color:var(--t3)">${c.pid||'–'}</td>
+        <td><span class="badge info">${c.protocol}</span></td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--t2)">${c.laddr}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:${c.malicious?'var(--red)':c.is_external?'var(--amber)':'var(--t1)'}">${c.rip||'–'}</td>
+        <td style="font-size:11px;color:var(--teal)">${c.domain||'–'}</td>
+        <td><span class="badge gray">${c.country||'–'}</span></td>
+        <td>${c.threat_score>0?`<span style="color:${sc(c.threat_score)};font-weight:500">${c.threat_score}</span>`:'–'}</td>
+        <td><span class="badge ${c.status==='ESTABLISHED'?'ok':c.status==='LISTEN'?'med':'gray'}">${c.status}</span></td>
+        <td style="font-size:10px;color:var(--amber);max-width:180px">${(c.flags||[]).join(' · ')}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="10" class="empty">No connections match filter.</td></tr>';
+}
+
+// PROCESSES
+function renderProcesses(){
+  const search=(document.getElementById('proc-search').value||'').toLowerCase();
+  const sort=document.getElementById('proc-sort').value;
+  let procs=(D.processes||[]).filter(p=>!search||p.name.toLowerCase().includes(search)||(p.username||'').toLowerCase().includes(search));
+  if(sort==='mem')procs.sort((a,b)=>b.memory-a.memory);
+  else if(sort==='name')procs.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sort==='conns')procs.sort((a,b)=>b.connections-a.connections);
+  else procs.sort((a,b)=>b.cpu-a.cpu);
+  document.getElementById('proc-body').innerHTML=procs.length
+    ?procs.map(p=>`
+      <tr class="${p.suspicious?'mal':''}">
+        <td style="font-weight:500;color:${p.suspicious?'var(--red)':'var(--t1)'}">${p.name}${p.suspicious?' ⚠':''}</td>
+        <td style="color:var(--t3)">${p.pid}</td>
+        <td style="color:var(--t2);font-size:11px">${p.username}</td>
+        <td style="color:${p.cpu>50?'var(--red)':p.cpu>20?'var(--amber)':'var(--t1)'}">${p.cpu.toFixed(1)}%</td>
+        <td style="color:${p.memory>10?'var(--amber)':'var(--t1)'}">${p.memory.toFixed(2)}%</td>
+        <td style="color:${p.connections>10?'var(--amber)':'var(--t2)'}">${p.connections}</td>
+        <td><span class="badge ${p.status==='running'?'ok':p.status==='sleeping'?'info':'gray'}">${p.status}</span></td>
+      </tr>`).join('')
+    :'<tr><td colspan="7" class="empty">No processes found.</td></tr>';
+}
+
+// PORTS
+function renderPorts(){
+  const cvs=D.cve_results||{};
+  document.getElementById('ports-body').innerHTML=(D.open_ports||[]).length
+    ?(D.open_ports||[]).map(p=>{
+      const cve=cvs[p.port];
+      return `<tr class="${p.suspicious?'mal':''}">
+        <td style="font-weight:500;color:${p.suspicious?'var(--red)':'var(--teal)'}">${p.port}</td>
+        <td><span class="badge info">${p.protocol}</span></td>
+        <td style="font-family:var(--mono);color:var(--t2)">${p.address}</td>
+        <td style="font-weight:500">${p.process}</td>
+        <td style="color:var(--t3)">${p.pid}</td>
+        <td>${cve?`<span class="badge crit">${cve.critical_count} CVE(s) — max ${cve.max_score}</span>`:'<span class="badge ok">Clean</span>'}</td>
+        <td>${p.note?`<span class="badge ${p.suspicious?'crit':'high'}">${p.note}</span>`:'–'}</td>
+      </tr>`;
+    }).join('')
+    :'<tr><td colspan="7" class="empty">No open ports.</td></tr>';
+}
+
+// THREATS
+function renderThreats(){
+  const sev=document.getElementById('tl-sev').value;
+  const cat=document.getElementById('tl-cat').value;
+  const search=(document.getElementById('tl-search').value||'').toLowerCase();
+  let items=(D.threat_log||[]).filter(t=>{
+    if(sev!=='all'&&t.severity!==sev)return false;
+    if(cat!=='all'&&t.category!==cat)return false;
+    if(search&&!(t.title||'').toLowerCase().includes(search)&&!(t.ip||'').includes(search)&&!(t.domain||'').toLowerCase().includes(search))return false;
+    return true;
+  });
+  document.getElementById('threat-list').innerHTML=items.length
+    ?items.map(t=>`
+      <div style="border-bottom:0.5px solid var(--border);padding:9px 0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px">
+          ${sev_badge(t.severity)}<span class="badge gray">${t.category}</span>
+          ${t.threat_type?`<span class="badge info">${t.threat_type}</span>`:''}
+          <span style="font-size:12px;font-weight:500">${t.title}</span>
+        </div>
+        <div style="font-size:11px;color:var(--t2)">${t.detail}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px;font-family:var(--mono)">
+          ${t.timestamp}${t.ip?` · <span style="color:var(--red)">${t.ip}</span>`:''}${t.domain?` · <span style="color:var(--teal)">${t.domain}</span>`:''}
+        </div>
+      </div>`).join('')
+    :'<div class="empty">No threats match filter.</div>';
+}
+async function clearThreats(){
+  if(!confirm('Clear all saved threats?'))return;
+  await fetch(`${API}/api/threats/clear`,{method:'POST'});
+  await fetchAll();
+}
+
+// HARDWARE
+function renderHardware(){
+  const hw=D.hardware_access||[];
+  document.getElementById('hw-grid').innerHTML=hw.length
+    ?hw.map(h=>`
+      <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);${h.risk==='high'?'border-left:3px solid var(--red)':'border-left:3px solid var(--amber)'};padding:13px">
+        <div style="font-weight:500;margin-bottom:4px">${h.name} <span style="color:var(--t3);font-size:11px">PID ${h.pid}</span></div>
+        <div style="font-size:11px;color:var(--t2)">${h.hw_type} · ${h.username||'?'}</div>
+        <div style="margin-top:6px">${sev_badge(h.risk)}</div>
+        ${h.ext_conns&&h.ext_conns.length?`<div style="font-size:11px;color:var(--red);margin-top:6px">⚠ External: ${h.ext_conns.slice(0,2).join(', ')}</div>`:''}
+      </div>`).join('')
+    :'<div class="empty">No hardware access detected.</div>';
+  const hwT=(D.threat_log||[]).filter(t=>t.category==='Hardware Surveillance').slice(0,10);
+  document.getElementById('hw-threats').innerHTML=hwT.length
+    ?hwT.map(t=>`<div style="border-bottom:0.5px solid var(--border);padding:8px 0">${sev_badge(t.severity)} <span style="font-size:12px;font-weight:500">${t.title}</span><div style="font-size:11px;color:var(--t2)">${t.detail}</div><div style="font-size:10px;color:var(--t3)">${t.timestamp}</div></div>`).join('')
+    :'<div class="empty">No hardware threats logged.</div>';
+}
+
+// WIFI
+function renderWifi(){
+  document.getElementById('wifi-body').innerHTML=(D.wifi_devices||[]).length
+    ?(D.wifi_devices||[]).map(d=>`
+      <tr>
+        <td style="font-family:var(--mono);color:var(--teal)">${d.ip}</td>
+        <td style="font-family:var(--mono);color:var(--t2)">${d.mac}</td>
+        <td><span class="badge info">${d.type||'–'}</span></td>
+        <td style="color:var(--t2)">${d.hostname||'–'}</td>
+        <td><span class="badge ${d.suspicious?'crit':'ok'}">${d.suspicious?'Suspicious':'OK'}</span></td>
+      </tr>`).join('')
+    :'<tr><td colspan="5" class="empty">No devices found.</td></tr>';
+}
+
+// SYSINFO
+function renderSysinfo(){
+  const si=D.system_info||{};
+  const fields=[
+    ['Hostname',si.hostname],['Local IP',si.local_ip],['OS',si.os],
+    ['Architecture',si.machine],['Processor',si.processor],['Boot Time',si.boot_time],
+    ['CPU Cores (logical)',si.cpu_count],['CPU Cores (physical)',si.cpu_physical],
+    ['RAM Total',si.ram_total_gb?si.ram_total_gb+' GB':'–'],['Python',si.python_ver],
+    ['ReportLab (PDF)',D.reportlab?'✓ Installed':'✗ pip install reportlab'],
+    ['Scapy (packets)',D.scapy?'✓ Installed':'✗ pip install scapy'],
+    ['AbuseIPDB',D.abuseipdb_active?'✓ Live checks':'Offline mode'],
+    ['Total Threats',D.total_alerts||0],['Total Incidents',D.total_incidents||0],
+    ['Server Time',D.server_time],
+  ];
+  document.getElementById('sysinfo-grid').innerHTML=fields.map(([k,v])=>`
+    <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:10px 14px">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em">${k}</div>
+      <div style="font-size:13px;font-weight:500;color:var(--t1);word-break:break-all">${v||'–'}</div>
+    </div>`).join('');
+}
+
+// BOOT
+fetchAll();
+setInterval(fetchAll,REFRESH);
+</script>
+</body>
+</html>
