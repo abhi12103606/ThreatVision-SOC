@@ -1,4 +1,4 @@
-# 🛡️ SOC Analyst Level-2 — Network Threat Detection Platform
+# 🛡️ SOC Analyst Level-2 — Threat Detection Platform v2.0
 
 A real-time Security Operations Center (SOC) dashboard built by a CS graduate with hands-on experience in fraud analysis and cybersecurity. Monitors live network traffic on Windows, detects threats using external intelligence feeds, flags malicious connections, hardware surveillance attempts, and suspicious processes — with full incident response workflows, threat hunting, CVE scanning, and persistent storage.
 
