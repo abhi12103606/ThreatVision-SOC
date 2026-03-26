@@ -161,6 +161,7 @@ body{font-family:var(--sans);background:var(--bg0);color:var(--t1);font-size:13p
     <div class="hdr-sub" id="hdr-sub">Connecting to monitor_v2.py…</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
+    <!-- FIX: clock now correctly shows UTC time matching server timestamps -->
     <span style="font-family:var(--mono);font-size:11px;color:var(--t2)" id="live-clock"></span>
     <span class="badge info" id="conn-badge">–</span>
   </div>
@@ -244,7 +245,6 @@ body{font-family:var(--sans);background:var(--bg0);color:var(--t1);font-size:13p
       </select>
       <button class="btn primary" onclick="doHunt()">🔍 Hunt</button>
     </div>
-    <!-- Quick hunt buttons -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       <span style="font-size:11px;color:var(--t2);margin-right:4px">Quick hunts:</span>
       <button class="btn" style="font-size:10px;padding:3px 10px" onclick="quickHunt('4444')">Port 4444</button>
@@ -367,7 +367,8 @@ body{font-family:var(--sans);background:var(--bg0);color:var(--t1);font-size:13p
       <option value="Process">Process</option>
     </select>
     <input type="text" id="tl-search" placeholder="Search…" style="flex:1" oninput="renderThreats()">
-    <button class="btn" style="border-color:var(--green);color:var(--green)" onclick="window.open('http://localhost:5000/api/threats/export')">Export JSON</button>
+    <!-- FIX: was calling /api/threats/export which returned 404; now uses correct endpoint -->
+    <button class="btn" style="border-color:var(--green);color:var(--green)" onclick="exportThreats()">Export JSON</button>
     <button class="btn danger" onclick="clearThreats()">Clear</button>
   </div>
   <div id="threat-list"></div>
@@ -404,8 +405,16 @@ let D=null,charts={},connected=false;
 const TABS=['overview','incidents','hunt','cve','correlation','report',
             'connections','processes','ports','threats','hardware','wifi','sysinfo'];
 
-// CLOCK
-setInterval(()=>{const e=document.getElementById('live-clock');if(e)e.textContent=new Date().toISOString().replace('T',' ').slice(0,19)+' UTC';},1000);
+// FIX: Clock now shows UTC correctly (toUTCString was locale-dependent)
+setInterval(()=>{
+  const e=document.getElementById('live-clock');
+  if(e){
+    const n=new Date();
+    const pad=v=>String(v).padStart(2,'0');
+    e.textContent=`${n.getUTCFullYear()}-${pad(n.getUTCMonth()+1)}-${pad(n.getUTCDate())} `+
+                  `${pad(n.getUTCHours())}:${pad(n.getUTCMinutes())}:${pad(n.getUTCSeconds())} UTC`;
+  }
+},1000);
 
 // TABS
 function tab(name){
@@ -488,7 +497,6 @@ function renderOverview(){
   updateChart('ch-mem',ts,mem,'#d48c10');
   updateChart('ch-net',ts,D.net_recv_history||[],'#28b4a0',D.net_sent_history||[],'#3da060');
 
-  // Active incidents summary
   const active=(D.incidents||[]).filter(i=>i.status!=='Resolved').slice(0,3);
   document.getElementById('ov-incidents').innerHTML=active.length
     ?active.map(inc=>`
@@ -499,7 +507,6 @@ function renderOverview(){
       </div>`).join('')
     :'<div class="empty">No active incidents.</div>';
 
-  // Recent threats
   const recent=(D.threat_log||[]).filter(t=>t.severity==='critical'||t.severity==='high').slice(0,4);
   document.getElementById('ov-threats').innerHTML=recent.length
     ?recent.map(t=>`
@@ -539,7 +546,6 @@ function renderIncidents(){
         </div>
         ${stage_pipe(inc.stage)}
 
-        <!-- Timeline -->
         <details style="margin-top:10px">
           <summary style="font-size:11px;color:var(--t2);cursor:pointer;user-select:none">▶ Timeline (${(inc.timeline||[]).length} events)</summary>
           <div style="margin-top:8px;padding-left:8px">
@@ -552,7 +558,6 @@ function renderIncidents(){
           </div>
         </details>
 
-        <!-- Analyst Notes -->
         <details style="margin-top:8px">
           <summary style="font-size:11px;color:var(--t2);cursor:pointer;user-select:none">▶ Analyst Notes (${(inc.analyst_notes||[]).length})</summary>
           <div style="margin-top:8px">
@@ -562,7 +567,6 @@ function renderIncidents(){
           </div>
         </details>
 
-        <!-- Actions -->
         <div class="inc-actions">
           <button class="btn" style="font-size:11px" onclick="incAction('${inc.id}','Investigate','Analyst began investigation')">🔍 Investigate</button>
           <button class="btn amber" style="font-size:11px" onclick="incAction('${inc.id}','Contain','IP/process containment applied')">🛡 Contain</button>
@@ -738,7 +742,7 @@ function renderConnections(){
     if(filter==='suspicious'&&!c.suspicious)return false;
     if(filter==='external'&&!c.is_external)return false;
     if(filter==='established'&&c.status!=='ESTABLISHED')return false;
-    if(search&&!c.process.toLowerCase().includes(search)&&!(c.raddr||'').includes(search)&&!(c.domain||'').toLowerCase().includes(search))return false;
+    if(search&&!(c.process||'').toLowerCase().includes(search)&&!(c.raddr||'').includes(search)&&!(c.domain||'').toLowerCase().includes(search))return false;
     return true;
   });
   document.getElementById('conn-body').innerHTML=rows.length
@@ -826,6 +830,12 @@ function renderThreats(){
       </div>`).join('')
     :'<div class="empty">No threats match filter.</div>';
 }
+
+// FIX: Export JSON — was calling a non-existent endpoint, now calls /api/threats/export
+function exportThreats(){
+  window.open(`${API}/api/threats/export`,'_blank');
+}
+
 async function clearThreats(){
   if(!confirm('Clear all saved threats?'))return;
   await fetch(`${API}/api/threats/clear`,{method:'POST'});
@@ -876,7 +886,7 @@ function renderSysinfo(){
     ['Scapy (packets)',D.scapy?'✓ Installed':'✗ pip install scapy'],
     ['AbuseIPDB',D.abuseipdb_active?'✓ Live checks':'Offline mode'],
     ['Total Threats',D.total_alerts||0],['Total Incidents',D.total_incidents||0],
-    ['Server Time',D.server_time],
+    ['Server Time (UTC)',D.server_time],
   ];
   document.getElementById('sysinfo-grid').innerHTML=fields.map(([k,v])=>`
     <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:10px 14px">
