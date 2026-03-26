@@ -1,4 +1,4 @@
-# 🛡️ SOC Analyst Level-2 — Threat Detection Platform v2.0
+# 🛡️ SOC Analyst Level-2 — Network Threat Detection Platform
 
 A real-time Security Operations Center (SOC) dashboard built by a CS graduate with hands-on experience in fraud analysis and cybersecurity. Monitors live network traffic on Windows, detects threats using external intelligence feeds, flags malicious connections, hardware surveillance attempts, and suspicious processes — with full incident response workflows, threat hunting, CVE scanning, and persistent storage.
 
@@ -173,7 +173,7 @@ python monitor_v2.py
 You should see:
 ```
 ==============================================================
-  SOC Analyst Level-2 — Threat Detection Platform v2.0
+  SOC Analyst Level-2 — Threat Detection Platform v2.1
 ==============================================================
   Python     : 3.x.x
   ReportLab  : YES — PDF reports enabled
@@ -213,6 +213,7 @@ Double-click `dashboard_v2.html` in your browser. It auto-connects to the API.
 | GET | `/api/correlation` | Alert correlation graph by IP |
 | GET | `/api/report/<inc_id>` | Download PDF incident report |
 | GET | `/api/reputation/<ip>` | Check reputation of any IP |
+| GET | `/api/threats/export` | Download full threat log as JSON file |
 | POST | `/api/threats/clear` | Clear all saved threats |
 | GET | `/api/status` | Backend health check |
 
